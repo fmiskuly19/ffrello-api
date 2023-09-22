@@ -10,7 +10,7 @@ using test.database;
 
 namespace test.Migrations
 {
-    [DbContext(typeof(TestContext))]
+    [DbContext(typeof(FfrelloDbContext))]
     [Migration("20230919164441_InitialCreate")]
     partial class InitialCreate
     {

@@ -9,7 +9,7 @@ using test.database;
 
 namespace test.Migrations
 {
-    [DbContext(typeof(TestContext))]
+    [DbContext(typeof(FfrelloDbContext))]
     partial class TestContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

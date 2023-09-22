@@ -9,14 +9,15 @@ namespace FFrelloApi
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
-            builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions
-                .ReferenceHandler = ReferenceHandler.Preserve);
-
+            
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddCors(c => { c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin()); });
+
+            builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions
+                .ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
             //var MyAllowSpecificOrigins = "_arbitraryPolicyName";
 
@@ -32,9 +33,7 @@ namespace FFrelloApi
 
             var app = builder.Build();
 
-            //app.UseCors(MyAllowSpecificOrigins);
-
-            
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:5173"));
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

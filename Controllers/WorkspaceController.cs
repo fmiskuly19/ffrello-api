@@ -7,44 +7,58 @@ using Microsoft.EntityFrameworkCore;
 
 namespace test.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/")]
     [ApiController]
     public class WorkspaceController : ControllerBase
     {
-        // GET: api/<WorkspaceController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        [HttpGet("workspaces")]
+        public JsonResult Get()
         {
-            return new string[] { "value1", "value2" };
+            try
+            {
+#if DEBUG
+                Thread.Sleep(3000);
+#endif
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var result = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(result);
+                }
+            }
+            catch(Exception e)
+            {
+                return new JsonResult(e.Message);
+            }
+           
         }
 
-        // GET api/<WorkspaceController>/5
-        [HttpGet("{name}")]
-        public ActionResult Get(string name)
+        [HttpGet("workspace/{id}")]
+        public JsonResult Get(int id)
         {
-            using (TestContext dbContext = new TestContext())
+            using (FfrelloDbContext dbContext = new FfrelloDbContext())
             {
-                var result = dbContext.Workspaces.Include(x => x.Boards).Single(x => x.Name == name);
-                return Ok(result);
+                var result = dbContext.Workspaces.Include(x => x.Boards).Single(x => x.Id == id);
+                return new JsonResult(result);
             }
         }
 
-        // POST api/<WorkspaceController>
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
+        //// POST api/<WorkspaceController>
+        //[HttpPost]
+        //public void Post([FromBody] string value)
+        //{
+        //}
 
-        // PUT api/<WorkspaceController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
+        //// PUT api/<WorkspaceController>/5
+        //[HttpPut("{id}")]
+        //public void Put(int id, [FromBody] string value)
+        //{
+        //}
 
-        // DELETE api/<WorkspaceController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+        //// DELETE api/<WorkspaceController>/5
+        //[HttpDelete("{id}")]
+        //public void Delete(int id)
+        //{
+        //}
     }
 }
