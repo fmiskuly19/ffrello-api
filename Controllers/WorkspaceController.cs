@@ -33,6 +33,21 @@ namespace test.Controllers
            
         }
 
+        [HttpGet("dummy")]
+        public JsonResult Dummy()
+        {
+            try
+            {
+                Thread.Sleep(3000);
+
+                return new JsonResult("ok");
+            }
+            catch (Exception e)
+            {
+                return new JsonResult(e.Message);
+            }
+        }
+
         [HttpGet("workspace/{id}")]
         public JsonResult Get(int id)
         {
