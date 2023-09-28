@@ -5,7 +5,6 @@
         public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
-        public bool IsWatched { get; set; } = false;
         public BoardList BoardList { get; set; }
         public int BoardListId { get; set; }
 

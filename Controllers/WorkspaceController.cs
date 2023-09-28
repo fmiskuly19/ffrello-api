@@ -2,6 +2,8 @@
 using test.database;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using FFrelloApi.Models;
+using test.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -11,8 +13,8 @@ namespace test.Controllers
     [ApiController]
     public class WorkspaceController : ControllerBase
     {
-        [HttpGet("workspaces")]
-        public JsonResult Get()
+        [HttpGet("{userid}/workspaces")]
+        public JsonResult GetWorkspaces(string userid)
         {
             try
             {
@@ -31,6 +33,25 @@ namespace test.Controllers
                 return new JsonResult(e.Message);
             }
            
+        }
+
+        [HttpPost("{userid}/newWorkspace")]
+        public async Task<IActionResult> NewWorkspace(string userid, [FromBody] NewWorkspaceDto data)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    await dbContext.Workspaces.AddAsync(new Workspace() { Description = data.description, Name = data.workspaceName, Theme = data.theme });
+                    await dbContext.SaveChangesAsync();
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+
         }
 
         [HttpGet("dummy")]
