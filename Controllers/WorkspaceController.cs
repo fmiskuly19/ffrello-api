@@ -14,11 +14,12 @@ namespace test.Controllers
     public class WorkspaceController : ControllerBase
     {
         [HttpGet("{userid}/workspaces")]
-        public JsonResult GetWorkspaces(string userid)
+        public IActionResult GetWorkspaces(string userid)
         {
             try
             {
 #if DEBUG
+                //fake a long waiting time if in debug to show loading spinners on client side
                 Thread.Sleep(3000);
 #endif
 
@@ -35,7 +36,7 @@ namespace test.Controllers
            
         }
 
-        [HttpPost("{userid}/newWorkspace")]
+        [HttpPost("{userid}/workspace/new")]
         public async Task<IActionResult> NewWorkspace(string userid, [FromBody] NewWorkspaceDto data)
         {
             try
@@ -44,7 +45,32 @@ namespace test.Controllers
                 {
                     await dbContext.Workspaces.AddAsync(new Workspace() { Description = data.description, Name = data.workspaceName, Theme = data.theme });
                     await dbContext.SaveChangesAsync();
-                    return Ok();
+
+                    //return workspaces with boards for client to update
+                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(updatedWorkspaces);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpDelete("{userid}/workspace/remove/{workspaceid}")]
+        public async Task<IActionResult> DeleteWorkspace(string userid, int workspaceid)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var existingWorkspace = dbContext.Workspaces.Single(x => x.Id == workspaceid);
+                    dbContext.Workspaces.Remove(existingWorkspace);
+                    await dbContext.SaveChangesAsync();
+
+                    //return workspaces with boards for client to update
+                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(updatedWorkspaces);
                 }
             }
             catch (Exception e)
@@ -54,8 +80,29 @@ namespace test.Controllers
 
         }
 
+        [HttpPost("{userid}/board/new")]
+        public async Task<IActionResult> NewBoard(string userid, [FromBody] NewBoardDto data)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    await dbContext.Boards.AddAsync(new Board() { WorkspaceId = data.WorkspaceId, Name = data.BoardTitle  });
+                    await dbContext.SaveChangesAsync();
+
+                    //return workspaces with boards for client to update
+                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(updatedWorkspaces);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
         [HttpGet("dummy")]
-        public JsonResult Dummy()
+        public IActionResult Dummy()
         {
             try
             {
@@ -68,33 +115,5 @@ namespace test.Controllers
                 return new JsonResult(e.Message);
             }
         }
-
-        [HttpGet("workspace/{id}")]
-        public JsonResult Get(int id)
-        {
-            using (FfrelloDbContext dbContext = new FfrelloDbContext())
-            {
-                var result = dbContext.Workspaces.Include(x => x.Boards).Single(x => x.Id == id);
-                return new JsonResult(result);
-            }
-        }
-
-        //// POST api/<WorkspaceController>
-        //[HttpPost]
-        //public void Post([FromBody] string value)
-        //{
-        //}
-
-        //// PUT api/<WorkspaceController>/5
-        //[HttpPut("{id}")]
-        //public void Put(int id, [FromBody] string value)
-        //{
-        //}
-
-        //// DELETE api/<WorkspaceController>/5
-        //[HttpDelete("{id}")]
-        //public void Delete(int id)
-        //{
-        //}
     }
 }
