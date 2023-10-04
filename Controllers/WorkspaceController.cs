@@ -18,11 +18,6 @@ namespace test.Controllers
         {
             try
             {
-#if DEBUG
-                //fake a long waiting time if in debug to show loading spinners on client side
-                Thread.Sleep(3000);
-#endif
-
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
                     var result = dbContext.Workspaces.Include(x => x.Boards).ToList();
@@ -100,6 +95,45 @@ namespace test.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        [HttpGet("{userid}/getBoardPage/{boardid}")]
+        public async Task<IActionResult> GetBoardPage(string userid, int boardid)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    Thread.Sleep(2000);
+
+                    var board = await dbContext.Boards.Include(x => x.BoardLists).ThenInclude(x => x.Cards).SingleOrDefaultAsync(x => x.Id == boardid);
+
+                    //how to get rid of these warnings?
+                    var workspace = await dbContext.Workspaces.Include(x => x.Boards).SingleOrDefaultAsync(x => x.Boards.Any(x => x.WorkspaceId == board.WorkspaceId));
+                    return new JsonResult(new { board, workspace });
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        //[HttpGet("{userid}/workspace/{workspaceid}")]
+        //public async Task<IActionResult> GetWorkspace(string userid, int workspaceid)
+        //{
+        //    try
+        //    {
+        //        using (FfrelloDbContext dbContext = new FfrelloDbContext())
+        //        {
+        //            var workspace = await dbContext.Workspaces.Include(x => x.Boards).SingleOrDefaultAsync(x => x.Id == workspaceid);
+        //            return new JsonResult(workspace);
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        return BadRequest(e.Message);
+        //    }
+        //}
 
         [HttpGet("dummy")]
         public IActionResult Dummy()
