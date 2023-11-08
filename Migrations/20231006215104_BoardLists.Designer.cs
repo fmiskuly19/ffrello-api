@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using test.database;
 
@@ -10,9 +11,11 @@ using test.database;
 namespace test.Migrations
 {
     [DbContext(typeof(FfrelloDbContext))]
-    partial class TestContextModelSnapshot : ModelSnapshot
+    [Migration("20231006215104_BoardLists")]
+    partial class BoardLists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.11");
@@ -134,9 +137,10 @@ namespace test.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -152,21 +156,21 @@ namespace test.Migrations
                             Id = 1,
                             BoardListId = 1,
                             Description = "Franks Description of this card",
-                            Title = "Franks Card"
+                            Name = "Franks Card"
                         },
                         new
                         {
                             Id = 2,
                             BoardListId = 2,
                             Description = "Franks Description of the 2nd card",
-                            Title = "Franks 2nd Card"
+                            Name = "Franks 2nd Card"
                         },
                         new
                         {
                             Id = 3,
                             BoardListId = 3,
                             Description = "Franks Description of the 3nd card",
-                            Title = "Franks 3rd Card"
+                            Name = "Franks 3rd Card"
                         });
                 });
 

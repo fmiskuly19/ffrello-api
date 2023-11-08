@@ -46,21 +46,21 @@ public class FfrelloDbContext : DbContext
             {
                 Id = 1,
                 BoardListId = 1,
-                Name = "Franks Card",
+                Title = "Franks Card",
                 Description = "Franks Description of this card"
             },
             new Card()
             {
                 Id = 2,
                 BoardListId = 2,
-                Name = "Franks 2nd Card",
+                Title = "Franks 2nd Card",
                 Description = "Franks Description of the 2nd card"
             },
             new Card()
             {
                 Id = 3,
                 BoardListId = 3,
-                Name = "Franks 3rd Card",
+                Title = "Franks 3rd Card",
                 Description = "Franks Description of the 3nd card"
             }
         );
@@ -155,5 +155,6 @@ public class FfrelloDbContext : DbContext
 
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<Board> Boards => Set<Board>();
+    public DbSet<BoardList> BoardLists => Set<BoardList>();
     public DbSet<Card> Cards => Set<Card>();
 }

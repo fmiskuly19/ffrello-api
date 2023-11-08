@@ -1,4 +1,4 @@
-﻿namespace FFrelloApi.Models
+﻿namespace FFrelloApi.Models.Dto
 {
     public class NewWorkspaceDto
     {

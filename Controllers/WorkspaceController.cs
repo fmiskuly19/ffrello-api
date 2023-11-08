@@ -2,8 +2,9 @@
 using test.database;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using FFrelloApi.Models;
 using test.Models;
+using System.Runtime.InteropServices;
+using FFrelloApi.Models.Dto;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -13,67 +14,8 @@ namespace test.Controllers
     [ApiController]
     public class WorkspaceController : ControllerBase
     {
-        [HttpGet("{userid}/workspaces")]
-        public IActionResult GetWorkspaces(string userid)
-        {
-            try
-            {
-                using (FfrelloDbContext dbContext = new FfrelloDbContext())
-                {
-                    var result = dbContext.Workspaces.Include(x => x.Boards).ToList();
-                    return new JsonResult(result);
-                }
-            }
-            catch(Exception e)
-            {
-                return new JsonResult(e.Message);
-            }
-           
-        }
+        #region boards
 
-        [HttpPost("{userid}/workspace/new")]
-        public async Task<IActionResult> NewWorkspace(string userid, [FromBody] NewWorkspaceDto data)
-        {
-            try
-            {
-                using (FfrelloDbContext dbContext = new FfrelloDbContext())
-                {
-                    await dbContext.Workspaces.AddAsync(new Workspace() { Description = data.description, Name = data.workspaceName, Theme = data.theme });
-                    await dbContext.SaveChangesAsync();
-
-                    //return workspaces with boards for client to update
-                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
-                    return new JsonResult(updatedWorkspaces);
-                }
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-        [HttpDelete("{userid}/workspace/remove/{workspaceid}")]
-        public async Task<IActionResult> DeleteWorkspace(string userid, int workspaceid)
-        {
-            try
-            {
-                using (FfrelloDbContext dbContext = new FfrelloDbContext())
-                {
-                    var existingWorkspace = dbContext.Workspaces.Single(x => x.Id == workspaceid);
-                    dbContext.Workspaces.Remove(existingWorkspace);
-                    await dbContext.SaveChangesAsync();
-
-                    //return workspaces with boards for client to update
-                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
-                    return new JsonResult(updatedWorkspaces);
-                }
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-
-        }
 
         [HttpPost("{userid}/board/new")]
         public async Task<IActionResult> NewBoard(string userid, [FromBody] NewBoardDto data)
@@ -82,7 +24,7 @@ namespace test.Controllers
             {
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    await dbContext.Boards.AddAsync(new Board() { WorkspaceId = data.WorkspaceId, Name = data.BoardTitle  });
+                    await dbContext.Boards.AddAsync(new Board() { WorkspaceId = data.WorkspaceId, Name = data.BoardTitle });
                     await dbContext.SaveChangesAsync();
 
                     //return workspaces with boards for client to update
@@ -118,22 +60,167 @@ namespace test.Controllers
             }
         }
 
-        //[HttpGet("{userid}/workspace/{workspaceid}")]
-        //public async Task<IActionResult> GetWorkspace(string userid, int workspaceid)
-        //{
-        //    try
-        //    {
-        //        using (FfrelloDbContext dbContext = new FfrelloDbContext())
-        //        {
-        //            var workspace = await dbContext.Workspaces.Include(x => x.Boards).SingleOrDefaultAsync(x => x.Id == workspaceid);
-        //            return new JsonResult(workspace);
-        //        }
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        return BadRequest(e.Message);
-        //    }
-        //}
+        [HttpPut("{userid}/board/star/{boardid}")]
+        public async Task<IActionResult> StarBoard(string userid, [FromBody] StarBoardDto data)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var board = dbContext.Boards.Single(x => x.Id == data.BoardId);
+                    board.IsStarred = data.IsStarred;
+                    dbContext.Boards.Attach(board);
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+
+        #endregion
+
+        #region workspaces
+
+
+
+
+        [HttpGet("{userid}/workspaces")]
+        public IActionResult GetWorkspaces(string userid)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var result = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(result);
+                }
+            }
+            catch (Exception e)
+            {
+                return new JsonResult(e.Message);
+            }
+        }
+
+
+        [HttpPost("{userid}/workspace/new")]
+        public async Task<IActionResult> NewWorkspace(string userid, [FromBody] NewWorkspaceDto data)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    await dbContext.Workspaces.AddAsync(new Workspace() { Description = data.description, Name = data.workspaceName, Theme = data.theme });
+                    await dbContext.SaveChangesAsync();
+
+                    //return workspaces with boards for client to update
+                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(updatedWorkspaces);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+
+        [HttpDelete("{userid}/workspace/remove/{workspaceid}")]
+        public async Task<IActionResult> DeleteWorkspace(string userid, int workspaceid)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var existingWorkspace = dbContext.Workspaces.Single(x => x.Id == workspaceid);
+                    dbContext.Workspaces.Remove(existingWorkspace);
+                    await dbContext.SaveChangesAsync();
+
+                    //return workspaces with boards for client to update
+                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    return new JsonResult(updatedWorkspaces);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+
+        }
+
+        #endregion
+
+        #region cards
+
+        [HttpPost("{userid}/card/new")]
+        public async Task<IActionResult> NewCard(string userid, [FromBody] NewCardDto data)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var c = new Card() { BoardListId = data.BoardListId, Title = data.Title };
+                    await dbContext.Cards.AddAsync(c);
+                    await dbContext.SaveChangesAsync();
+                    return new JsonResult(c);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        #endregion
+
+        #region board lists
+
+
+        [HttpPut("{userid}/newBoardList")]
+        public async Task<IActionResult> NewBoardList(string userid, [FromBody] NewBoardListDto data)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var bl = new BoardList() { Name = data.Name, BoardId = data.BoardId };
+                    await dbContext.BoardLists.AddAsync(bl);
+                    await dbContext.SaveChangesAsync();
+                    return new JsonResult(bl);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpDelete("{userid}/boardList/remove/{boardListId}")]
+        public async Task<IActionResult> RemoveBoardList(string userid, int boardListId)
+        {
+            try
+            {
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var existingBoardList = dbContext.BoardLists.Single(x => x.Id == boardListId);
+                    dbContext.BoardLists.Remove(existingBoardList);
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+
+        #endregion
 
         [HttpGet("dummy")]
         public IActionResult Dummy()
