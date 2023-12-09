@@ -13,7 +13,9 @@ namespace FFrelloApi
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            //this does not work with .net 6.0, looks for Startup.cs which doesnt exist
+            //builder.Services.AddSwaggerGen();
             builder.Services.AddCors(c => { c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin()); });
 
             builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions
