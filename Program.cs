@@ -15,7 +15,7 @@ namespace FFrelloApi
             builder.Services.AddEndpointsApiExplorer();
 
             //this does not work with .net 6.0, looks for Startup.cs which doesnt exist
-            //builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen();
             builder.Services.AddCors(c => { c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin()); });
 
             builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions
