@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>FFrelloApi</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>E:\code\Projects\ffrello-api\.github\workflows\FFrelloApi.yml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>E:\code\Projects\ffrello-api\.github\workflows\FFrelloApiAppService.yml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>
