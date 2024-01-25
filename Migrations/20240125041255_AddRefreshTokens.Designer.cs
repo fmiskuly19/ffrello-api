@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using test.database;
 
@@ -10,9 +11,11 @@ using test.database;
 namespace test.Migrations
 {
     [DbContext(typeof(FfrelloDbContext))]
-    partial class TestContextModelSnapshot : ModelSnapshot
+    [Migration("20240125041255_AddRefreshTokens")]
+    partial class AddRefreshTokens
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.11");
@@ -215,14 +218,6 @@ namespace test.Migrations
                     b.HasIndex("CardId");
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Email = "yluksim9@gmail.com",
-                            RefreshTokenId = 0
-                        });
                 });
 
             modelBuilder.Entity("test.Models.Workspace", b =>
@@ -241,7 +236,7 @@ namespace test.Migrations
                     b.Property<string>("Theme")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -257,20 +252,17 @@ namespace test.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "Frank",
-                            UserId = 1
+                            Name = "Frank"
                         },
                         new
                         {
                             Id = 2,
-                            Name = "Catherine",
-                            UserId = 1
+                            Name = "Catherine"
                         },
                         new
                         {
                             Id = 3,
-                            Name = "M.C.",
-                            UserId = 1
+                            Name = "M.C."
                         });
                 });
 
@@ -327,13 +319,9 @@ namespace test.Migrations
 
             modelBuilder.Entity("test.Models.Workspace", b =>
                 {
-                    b.HasOne("test.Models.User", "User")
+                    b.HasOne("test.Models.User", null)
                         .WithMany("Workspaces")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("test.Models.Board", b =>

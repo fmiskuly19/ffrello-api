@@ -5,11 +5,16 @@ using Microsoft.EntityFrameworkCore;
 using test.Models;
 using System.Runtime.InteropServices;
 using FFrelloApi.Models.Dto;
+using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json.Linq;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace test.Controllers
 {
+    [Authorize]
     [Route("api/")]
     [ApiController]
     public class WorkspaceController : ControllerBase
@@ -85,18 +90,22 @@ namespace test.Controllers
         #endregion
 
         #region workspaces
-
-
-
-
+        
         [HttpGet("{userid}/workspaces")]
         public IActionResult GetWorkspaces(string userid)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var handler = new JwtSecurityTokenHandler();
+                var jsonToken = handler.ReadToken(jwtToken) as JwtSecurityToken;
+
+                var userEmail = jsonToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name).Value;
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    var result = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    var result = dbContext.Workspaces.Include(x => x.Boards).Include(x => x.User).Where(x => x.User.Email == userEmail).ToList();
+
                     return new JsonResult(result);
                 }
             }
@@ -119,6 +128,7 @@ namespace test.Controllers
 
                     //return workspaces with boards for client to update
                     var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+
                     return new JsonResult(updatedWorkspaces);
                 }
             }

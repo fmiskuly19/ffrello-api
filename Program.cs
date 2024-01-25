@@ -1,4 +1,11 @@
+using Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json.Serialization;
+using test.database;
 
 namespace FFrelloApi
 {
@@ -8,34 +15,42 @@ namespace FFrelloApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
 
-            //this does not work with .net 6.0, looks for Startup.cs which doesnt exist
             builder.Services.AddSwaggerGen();
-            builder.Services.AddCors(c => { c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin()); });
+
+            builder.Services.AddCors();
 
             builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions
                 .ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
-            //var MyAllowSpecificOrigins = "_arbitraryPolicyName";
+            builder.Services.AddDbContext<FfrelloDbContext>();
 
-            //builder.Services.AddCors(options =>
-            //{
-            //    options.AddPolicy(name: MyAllowSpecificOrigins,
-            //                      policy =>
-            //                      {
-            //                          policy.WithOrigins("https://localhost",
-            //                                              "https://localhost:8080");
-            //                      });
-            //});
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = "your_issuer",
+                    ValidAudience = "your_audience",
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("bc00527e4afd5da05df9080624d2b17558d833d6fffeb05ff8a1fbdae627d266"))
+                };
+            });
 
             var app = builder.Build();
 
-            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:5173"));
-            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://ffrello.onrender.com"));
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("http://localhost:5173"));
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://localhost:5173"));
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://ffrello.onrender.com"));
 
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment())
@@ -46,6 +61,7 @@ namespace FFrelloApi
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
