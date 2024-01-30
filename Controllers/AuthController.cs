@@ -16,10 +16,8 @@ namespace FFrelloApi.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        const string GOOGLE_CLIENTID = "972637678983-nnt2kq47b4i39k814ejqsc6v94p34qec.apps.googleusercontent.com";
-        const string GOOGLE_SECRET = "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";
-        const string SECRET_KEY = "bc00527e4afd5da05df9080624d2b17558d833d6fffeb05ff8a1fbdae627d266";
-
+        private readonly IConfiguration _configuration;
+        public AuthController(IConfiguration configuration) { _configuration = configuration; }
         public class GoogleSignInRequestDto
         {
             public string AccessToken { get; set; } = String.Empty;
@@ -63,6 +61,7 @@ namespace FFrelloApi.Controllers
 
                         return Ok(new { Message = String.Format("Google authentication successful for user {0}", existingUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser});
                     }
+
                     //if user didnt exist, create new user, generate jwt and refresh token, return both of those
                     else
                     {
@@ -168,7 +167,7 @@ namespace FFrelloApi.Controllers
                 new Claim(ClaimTypes.Name, user.Email.ToString()),
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SECRET_KEY));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT_SECRET"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(
                 issuer: "your_issuer",
@@ -188,7 +187,7 @@ namespace FFrelloApi.Controllers
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new[] { GOOGLE_CLIENTID } // Replace with your actual Google client ID
+                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } // Replace with your actual Google client ID
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken, validationSettings);
@@ -211,7 +210,7 @@ namespace FFrelloApi.Controllers
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new[] { GOOGLE_CLIENTID } // Replace with your actual Google client ID
+                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } // Replace with your actual Google client ID
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken, validationSettings);

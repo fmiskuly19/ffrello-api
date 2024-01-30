@@ -1,11 +1,12 @@
-using Google;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 using test.database;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace FFrelloApi
 {
@@ -14,6 +15,12 @@ namespace FFrelloApi
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Configuration
+                .SetBasePath(builder.Environment.ContentRootPath)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("secrets.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -42,7 +49,7 @@ namespace FFrelloApi
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = "your_issuer",
                     ValidAudience = "your_audience",
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("bc00527e4afd5da05df9080624d2b17558d833d6fffeb05ff8a1fbdae627d266"))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT_SECRET"]))
                 };
             });
 
