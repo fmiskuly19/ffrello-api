@@ -1,20 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using test.database;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using test.Models;
-using System.Runtime.InteropServices;
 using FFrelloApi.Models.Dto;
 using Microsoft.AspNetCore.Authorization;
-using Newtonsoft.Json.Linq;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
-using FFrelloApi.Controllers;
-using Microsoft.AspNetCore.Authentication;
 using FFrelloApi.Services;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using test.Migrations;
 
 namespace test.Controllers
 {
@@ -65,6 +56,7 @@ namespace test.Controllers
             }
         }
 
+        //this is setup for auth
         [HttpGet("{userid}/getBoard/{boardid}")]
         public async Task<IActionResult> GetBoardWithIncludes(string userid, int boardid)
         {
@@ -84,6 +76,7 @@ namespace test.Controllers
                     var board = await dbContext.Boards.Include(x => x.Workspace).ThenInclude(x => x.User).SingleOrDefaultAsync(x => x.Id == boardid);
                     if (board == null)
                         return BadRequest(String.Format("Could not find board with id {0}", boardid));
+
                     //check if board belongs to user
                     if (board.Workspace.User.Email != userEmail)
                         return Unauthorized();
@@ -92,7 +85,7 @@ namespace test.Controllers
                     var boardReturn = await dbContext.Boards.Include(x => x.BoardLists).ThenInclude(x => x.Cards).SingleAsync(x => x.Id == boardid);
                     //get workspace
                     var workspaceReturn = await dbContext.Workspaces.Include(x => x.Boards).SingleOrDefaultAsync(x => x.Boards.Any(x => x.WorkspaceId == board.WorkspaceId));
-                    return new JsonResult(new { boardReturn, workspaceReturn });
+                    return new JsonResult(new { board = boardReturn, workspace = workspaceReturn });
                 }
             }
             catch (Exception e)
@@ -221,11 +214,29 @@ namespace test.Controllers
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
+                    //check if user owns board List
+                    //ensure user owns boardlist with boardListId
+                    var boardList = await dbContext.BoardLists.Include(x => x.Board).ThenInclude(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == data.BoardListId);
+
+                    //check if board list exists
+                    if (boardList == null)
+                        return BadRequest(String.Format("Could not find board list with id {0}", data.BoardListId));
+                    //check if board list belongs to user
+                    if (boardList.Board.Workspace.User.Email != userEmail)
+                        return Unauthorized();
+
+                    //all good, create new card for this boardlist and save
                     var c = new Card() { BoardListId = data.BoardListId, Title = data.Title };
                     await dbContext.Cards.AddAsync(c);
                     await dbContext.SaveChangesAsync();
+
+                    //return the new card with newly created id
                     return new JsonResult(c);
                 }
             }
@@ -239,14 +250,28 @@ namespace test.Controllers
 
         #region board lists
 
-
+        //this is setup for auth
         [HttpPut("{userid}/newBoardList")]
         public async Task<IActionResult> NewBoardList(string userid, [FromBody] NewBoardListDto data)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
+                    //ensure user owns board with boardid
+                    var board = await dbContext.Boards.Include(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == data.BoardId);
+
+                    //check if board exists
+                    if (board == null)
+                        return BadRequest(String.Format("Could not find board with id {0}", data.BoardId));
+                    //check if board list belongs to user
+                    if (board.Workspace.User.Email != userEmail)
+                        return Unauthorized();
+
                     var bl = new BoardList() { Name = data.Name, BoardId = data.BoardId };
                     await dbContext.BoardLists.AddAsync(bl);
                     await dbContext.SaveChangesAsync();
@@ -259,15 +284,30 @@ namespace test.Controllers
             }
         }
 
+        //this is setup for auth
         [HttpDelete("{userid}/boardList/remove/{boardListId}")]
         public async Task<IActionResult> RemoveBoardList(string userid, int boardListId)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    var existingBoardList = dbContext.BoardLists.Single(x => x.Id == boardListId);
-                    dbContext.BoardLists.Remove(existingBoardList);
+                    //check if user owns board List
+                    //ensure user owns boardlist with boardListId
+                    var boardList = await dbContext.BoardLists.Include(x => x.Board).ThenInclude(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == boardListId);
+
+                    //check if board list exists
+                    if (boardList == null)
+                        return BadRequest(String.Format("Could not find board list with id {0}", boardListId));
+                    //check if board belongs to user
+                    if (boardList.Board.Workspace.User.Email != userEmail)
+                        return Unauthorized();
+
+                    dbContext.BoardLists.Remove(boardList);
                     await dbContext.SaveChangesAsync();
 
                     return Ok();
