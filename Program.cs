@@ -3,11 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 using test.database;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using FFrelloApi.Services;
+using Azure.Identity;
 
 namespace FFrelloApi
 {
@@ -22,6 +19,15 @@ namespace FFrelloApi
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile("secrets.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
+
+            //if we are production, use Azure Key vault for secrets instead of secrets.json
+            if (builder.Environment.IsProduction())
+            {
+                var vaultUrl = builder.Configuration["AzureKeyVaultName"]?.ToString();
+                builder.Configuration
+                    .AddAzureKeyVault(new Uri(vaultUrl), new DefaultAzureCredential());
+            }
+
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -52,23 +58,20 @@ namespace FFrelloApi
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = "your_issuer",
                     ValidAudience = "your_audience",
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT_SECRET"]))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT-SECRET"]))
                 };
             });
 
             var app = builder.Build();
 
-            //TODO change this to respect the environment its being run in
             app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("http://localhost:9743"));
-            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://localhost:9743"));
             app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://ffrello.onrender.com"));
 
-            // Configure the HTTP request pipeline.
-            //if (app.Environment.IsDevelopment())
-            //{
+            if (app.Environment.IsDevelopment())
+            {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-            //}
+            }
 
             app.UseHttpsRedirection();
 

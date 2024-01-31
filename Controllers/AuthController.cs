@@ -166,7 +166,7 @@ namespace FFrelloApi.Controllers
                 new Claim(ClaimTypes.Name, user.Email.ToString()),
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT_SECRET"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT-SECRET"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(
                 issuer: "your_issuer",
@@ -186,7 +186,7 @@ namespace FFrelloApi.Controllers
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } 
+                    Audience = new[] { _configuration["GOOGLE-CLIENTID"] } 
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken, validationSettings);
@@ -206,7 +206,7 @@ namespace FFrelloApi.Controllers
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } 
+                    Audience = new[] { _configuration["GOOGLE-CLIENTID"] } 
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken, validationSettings);

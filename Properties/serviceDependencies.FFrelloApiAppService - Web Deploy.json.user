@@ -1,20 +1,4 @@
 {
-  "dependencies": {
-    "apis1": {
-      "restored": true,
-      "restoreTime": "2023-12-09T21:56:05.2598615Z"
-    }
-  },
-  "parameters": {
-    "apis1.resourceGroupName": {
-      "Name": "apis1.resourceGroupName",
-      "Type": "resourceGroup",
-      "Value": "FFrelloResourceGroup"
-    },
-    "apis1.subscriptionId": {
-      "Name": "apis1.subscriptionId",
-      "Type": "subscription",
-      "Value": "3ef0e882-4cf0-4f6e-bf99-1899444131f8"
-    }
-  }
+  "dependencies": {},
+  "parameters": {}
 }

@@ -2,23 +2,44 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using test.database;
 
 #nullable disable
 
-namespace test.Migrations
+namespace FFrelloApi.Migrations
 {
     [DbContext(typeof(FfrelloDbContext))]
-    [Migration("20231007190428_RenameCardTitle")]
-    partial class RenameCardTitle
+    partial class FfrelloDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.11");
+
+            modelBuilder.Entity("FFrelloApi.Models.FFrelloRefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ExpiryDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("RefreshTokens");
+                });
 
             modelBuilder.Entity("test.Models.Board", b =>
                 {
@@ -137,7 +158,6 @@ namespace test.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -183,15 +203,26 @@ namespace test.Migrations
                     b.Property<int?>("CardId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("RefreshTokenId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CardId");
 
-                    b.ToTable("User");
+                    b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Email = "yluksim9@gmail.com",
+                            RefreshTokenId = 0
+                        });
                 });
 
             modelBuilder.Entity("test.Models.Workspace", b =>
@@ -210,10 +241,15 @@ namespace test.Migrations
                     b.Property<string>("Theme")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Workspaces");
 
@@ -221,18 +257,32 @@ namespace test.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "Fwank"
+                            Name = "Frank",
+                            UserId = 1
                         },
                         new
                         {
                             Id = 2,
-                            Name = "Cafwin"
+                            Name = "Catherine",
+                            UserId = 1
                         },
                         new
                         {
                             Id = 3,
-                            Name = "M.C."
+                            Name = "M.C.",
+                            UserId = 1
                         });
+                });
+
+            modelBuilder.Entity("FFrelloApi.Models.FFrelloRefreshToken", b =>
+                {
+                    b.HasOne("test.Models.User", "User")
+                        .WithOne("RefreshToken")
+                        .HasForeignKey("FFrelloApi.Models.FFrelloRefreshToken", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("test.Models.Board", b =>
@@ -275,6 +325,17 @@ namespace test.Migrations
                         .HasForeignKey("CardId");
                 });
 
+            modelBuilder.Entity("test.Models.Workspace", b =>
+                {
+                    b.HasOne("test.Models.User", "User")
+                        .WithMany("Workspaces")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("test.Models.Board", b =>
                 {
                     b.Navigation("BoardLists");
@@ -288,6 +349,14 @@ namespace test.Migrations
             modelBuilder.Entity("test.Models.Card", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("test.Models.User", b =>
+                {
+                    b.Navigation("RefreshToken")
+                        .IsRequired();
+
+                    b.Navigation("Workspaces");
                 });
 
             modelBuilder.Entity("test.Models.Workspace", b =>

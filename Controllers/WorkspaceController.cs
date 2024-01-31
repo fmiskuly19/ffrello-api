@@ -5,7 +5,6 @@ using test.Models;
 using FFrelloApi.Models.Dto;
 using Microsoft.AspNetCore.Authorization;
 using FFrelloApi.Services;
-using test.Migrations;
 
 namespace test.Controllers
 {
