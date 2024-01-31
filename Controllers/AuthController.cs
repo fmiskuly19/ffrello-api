@@ -13,7 +13,6 @@ using FFrelloApi.Models;
 namespace FFrelloApi.Controllers
 {
     [Route("api/auth/")]
-    [ApiController]
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
@@ -187,18 +186,15 @@ namespace FFrelloApi.Controllers
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } // Replace with your actual Google client ID
+                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } 
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken, validationSettings);
-
-                // Additional validation logic if needed
 
                 return true;
             }
             catch (InvalidJwtException)
             {
-                // The token is invalid
                 return false;
             }
         }
@@ -210,7 +206,7 @@ namespace FFrelloApi.Controllers
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } // Replace with your actual Google client ID
+                    Audience = new[] { _configuration["GOOGLE_CLIENTID"] } 
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(accessToken, validationSettings);
@@ -224,7 +220,6 @@ namespace FFrelloApi.Controllers
             }
             catch (InvalidJwtException)
             {
-                // Handle the exception or return null based on your needs
                 return null;
             }
         }

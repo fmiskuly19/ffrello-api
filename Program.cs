@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using FFrelloApi.Services;
 
 namespace FFrelloApi
 {
@@ -28,6 +29,8 @@ namespace FFrelloApi
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddCors();
+
+            builder.Services.AddScoped<FFrelloAuthenticationService>();
 
             builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions
                 .ReferenceHandler = ReferenceHandler.IgnoreCycles);
@@ -55,8 +58,9 @@ namespace FFrelloApi
 
             var app = builder.Build();
 
-            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("http://localhost:5173"));
-            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://localhost:5173"));
+            //TODO change this to respect the environment its being run in
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("http://localhost:9743"));
+            app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://localhost:9743"));
             app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins("https://ffrello.onrender.com"));
 
             // Configure the HTTP request pipeline.

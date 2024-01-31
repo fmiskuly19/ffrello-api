@@ -9,6 +9,10 @@ using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using FFrelloApi.Controllers;
+using Microsoft.AspNetCore.Authentication;
+using FFrelloApi.Services;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -19,16 +23,34 @@ namespace test.Controllers
     [ApiController]
     public class WorkspaceController : ControllerBase
     {
+        private FFrelloAuthenticationService _authenticationService { get; set; }
+        public WorkspaceController(FFrelloAuthenticationService authenticationService)
+        {
+            _authenticationService = authenticationService;
+        }
+
         #region boards
 
-
+        //this is setup for auth
         [HttpPost("{userid}/board/new")]
         public async Task<IActionResult> NewBoard(string userid, [FromBody] NewBoardDto data)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
+                    // Check if user matches the workspace id user
+                    var userWithWorkspaces = await dbContext.Users
+                        .Include(u => u.Workspaces) 
+                        .FirstOrDefaultAsync(x => x.Email == userEmail);
+
+                    if (userWithWorkspaces == null || !userWithWorkspaces.Workspaces.Any(w => w.Id == data.WorkspaceId))
+                        return Unauthorized("User unauthorized");
+
                     await dbContext.Boards.AddAsync(new Board() { WorkspaceId = data.WorkspaceId, Name = data.BoardTitle });
                     await dbContext.SaveChangesAsync();
 
@@ -43,20 +65,34 @@ namespace test.Controllers
             }
         }
 
-        [HttpGet("{userid}/getBoardPage/{boardid}")]
-        public async Task<IActionResult> GetBoardPage(string userid, int boardid)
+        [HttpGet("{userid}/getBoard/{boardid}")]
+        public async Task<IActionResult> GetBoardWithIncludes(string userid, int boardid)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    Thread.Sleep(2000);
+                    //ensure user owns the workspace that contains this board
+                    var user = await dbContext.Users.FirstAsync(x => x.Email == userEmail);
 
-                    var board = await dbContext.Boards.Include(x => x.BoardLists).ThenInclude(x => x.Cards).SingleOrDefaultAsync(x => x.Id == boardid);
+                    //get board with matching id, include workspace and user to see if user matches
+                    //first check if board exists
+                    var board = await dbContext.Boards.Include(x => x.Workspace).ThenInclude(x => x.User).SingleOrDefaultAsync(x => x.Id == boardid);
+                    if (board == null)
+                        return BadRequest(String.Format("Could not find board with id {0}", boardid));
+                    //check if board belongs to user
+                    if (board.Workspace.User.Email != userEmail)
+                        return Unauthorized();
 
-                    //how to get rid of these warnings?
-                    var workspace = await dbContext.Workspaces.Include(x => x.Boards).SingleOrDefaultAsync(x => x.Boards.Any(x => x.WorkspaceId == board.WorkspaceId));
-                    return new JsonResult(new { board, workspace });
+                    //all good, get board with all its info
+                    var boardReturn = await dbContext.Boards.Include(x => x.BoardLists).ThenInclude(x => x.Cards).SingleAsync(x => x.Id == boardid);
+                    //get workspace
+                    var workspaceReturn = await dbContext.Workspaces.Include(x => x.Boards).SingleOrDefaultAsync(x => x.Boards.Any(x => x.WorkspaceId == board.WorkspaceId));
+                    return new JsonResult(new { boardReturn, workspaceReturn });
                 }
             }
             catch (Exception e)
@@ -91,16 +127,16 @@ namespace test.Controllers
 
         #region workspaces
         
+        //this is setup for auth
         [HttpGet("{userid}/workspaces")]
         public IActionResult GetWorkspaces(string userid)
         {
             try
             {
-                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-                var handler = new JwtSecurityTokenHandler();
-                var jsonToken = handler.ReadToken(jwtToken) as JwtSecurityToken;
 
-                var userEmail = jsonToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name).Value;
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
 
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
@@ -115,15 +151,21 @@ namespace test.Controllers
             }
         }
 
-
+        //this is setup for auth
         [HttpPost("{userid}/workspace/new")]
         public async Task<IActionResult> NewWorkspace(string userid, [FromBody] NewWorkspaceDto data)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    await dbContext.Workspaces.AddAsync(new Workspace() { Description = data.description, Name = data.workspaceName, Theme = data.theme });
+                    //there is probably a faster way to do this
+                    var user = await dbContext.Users.FirstAsync(x => x.Email == userEmail);
+                    await dbContext.Workspaces.AddAsync(new Workspace() { Description = data.description, Name = data.workspaceName, Theme = data.theme, User = user });
                     await dbContext.SaveChangesAsync();
 
                     //return workspaces with boards for client to update
@@ -138,20 +180,29 @@ namespace test.Controllers
             }
         }
 
-
+        //this is setup for auth
         [HttpDelete("{userid}/workspace/remove/{workspaceid}")]
         public async Task<IActionResult> DeleteWorkspace(string userid, int workspaceid)
         {
             try
             {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    var existingWorkspace = dbContext.Workspaces.Single(x => x.Id == workspaceid);
+                    //ensure user owns workspace before deleting
+                    var user = await dbContext.Users.Include(x => x.Workspaces).FirstAsync(x => x.Email == userEmail);
+                    if(!user.Workspaces.Any(x => x.Id == workspaceid))
+                        return Unauthorized();
+
+                    var existingWorkspace = user.Workspaces.Single(x => x.Id == workspaceid);
                     dbContext.Workspaces.Remove(existingWorkspace);
                     await dbContext.SaveChangesAsync();
 
                     //return workspaces with boards for client to update
-                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).ToList();
+                    var updatedWorkspaces = dbContext.Workspaces.Include(x => x.Boards).Where(x => x.User.Id == user.Id).ToList();
                     return new JsonResult(updatedWorkspaces);
                 }
             }
@@ -159,7 +210,6 @@ namespace test.Controllers
             {
                 return BadRequest(e.Message);
             }
-
         }
 
         #endregion
