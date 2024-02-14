@@ -35,7 +35,8 @@ namespace FFrelloApi.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     Title = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
-                    BoardListId = table.Column<int>(type: "INTEGER", nullable: false)
+                    BoardListId = table.Column<int>(type: "INTEGER", nullable: false),
+                    BoardListName = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -172,12 +173,12 @@ namespace FFrelloApi.Migrations
 
             migrationBuilder.InsertData(
                 table: "Cards",
-                columns: new[] { "Id", "BoardListId", "Description", "Title" },
+                columns: new[] { "Id", "BoardListId", "BoardListName", "Description", "Title" },
                 values: new object[,]
                 {
-                    { 1, 1, "Franks Description of this card", "Franks Card" },
-                    { 2, 2, "Franks Description of the 2nd card", "Franks 2nd Card" },
-                    { 3, 3, "Franks Description of the 3nd card", "Franks 3rd Card" }
+                    { 1, 1, "TODO", "Franks Description of this card", "Franks Card" },
+                    { 2, 2, "In Progress", "Franks Description of the 2nd card", "Franks 2nd Card" },
+                    { 3, 3, "DONE", "Franks Description of the 3nd card", "Franks 3rd Card" }
                 });
 
             migrationBuilder.CreateIndex(

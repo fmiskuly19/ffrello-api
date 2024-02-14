@@ -1,7 +1,5 @@
 ﻿using FFrelloApi.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.PortableExecutable;
-using FFrelloApi.Models;
 
 namespace FFrelloApi.database
 {
@@ -56,11 +54,6 @@ namespace FFrelloApi.database
                 .HasMany(l => l.Cards)
                 .WithOne(c => c.BoardList)
                 .HasForeignKey(c => c.BoardListId);
-
-            modelBuilder.Entity<Card>()
-               .HasOne(l => l.BoardList)
-               .WithMany(c => c.Cards)
-               .HasForeignKey(c => c.BoardListId);
 
             modelBuilder.Entity<User>().HasData(
                 new User()
