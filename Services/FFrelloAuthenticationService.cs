@@ -1,6 +1,9 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using test.database;
+using System.Text;
+using FFrelloApi.database;
+using FFrelloApi.Models;
 
 namespace FFrelloApi.Services
 {
@@ -53,6 +56,26 @@ namespace FFrelloApi.Services
             {
                 return false;
             }
+        }
+
+        public string GenerateJwt(User user, string secret)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.Email.ToString()),
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                issuer: "your_issuer",
+                audience: "your_audience",
+                claims: claims,
+                expires: DateTime.Now.AddHours(4),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

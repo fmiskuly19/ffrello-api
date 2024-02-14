@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using test.database;
+using FFrelloApi.database;
 using Microsoft.EntityFrameworkCore;
-using test.Models;
+using FFrelloApi.Models;
 using FFrelloApi.Models.Dto;
 using Microsoft.AspNetCore.Authorization;
 using FFrelloApi.Services;
 
-namespace test.Controllers
+namespace FFrelloApi.Controllers
 {
     [Authorize]
     [Route("api/")]
@@ -237,6 +237,33 @@ namespace test.Controllers
 
                     //return the new card with newly created id
                     return new JsonResult(c);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpGet("{userid}/card/{cardid}")]
+        public async Task<IActionResult> GetCard(string userid, int cardid)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    //check if user owns board List
+                    //ensure user owns boardlist with boardListId
+                    var card = await dbContext.Cards.FirstOrDefaultAsync(x => x.Id == cardid);
+
+                    if (card != null)
+                        return new JsonResult(card);
+                    else
+                        return BadRequest(String.Format("Could not find card with Id {0}", cardid));
                 }
             }
             catch (Exception e)

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
-using test.database;
+using FFrelloApi.database;
 using FFrelloApi.Services;
 using Azure.Identity;
 
@@ -27,7 +27,6 @@ namespace FFrelloApi
                 builder.Configuration
                     .AddAzureKeyVault(new Uri(vaultUrl), new DefaultAzureCredential());
             }
-
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();

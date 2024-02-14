@@ -1,9 +1,9 @@
 ﻿using FFrelloApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.PortableExecutable;
-using test.Models;
+using FFrelloApi.Models;
 
-namespace test.database
+namespace FFrelloApi.database
 {
     public class FfrelloDbContext : DbContext
     {
@@ -57,6 +57,11 @@ namespace test.database
                 .WithOne(c => c.BoardList)
                 .HasForeignKey(c => c.BoardListId);
 
+            modelBuilder.Entity<Card>()
+               .HasOne(l => l.BoardList)
+               .WithMany(c => c.Cards)
+               .HasForeignKey(c => c.BoardListId);
+
             modelBuilder.Entity<User>().HasData(
                 new User()
                 {
@@ -70,6 +75,7 @@ namespace test.database
                 {
                     Id = 1,
                     BoardListId = 1,
+                    BoardListName = "TODO",
                     Title = "Franks Card",
                     Description = "Franks Description of this card"
                 },
@@ -77,6 +83,7 @@ namespace test.database
                 {
                     Id = 2,
                     BoardListId = 2,
+                    BoardListName = "In Progress",
                     Title = "Franks 2nd Card",
                     Description = "Franks Description of the 2nd card"
                 },
@@ -84,6 +91,7 @@ namespace test.database
                 {
                     Id = 3,
                     BoardListId = 3,
+                    BoardListName = "DONE",
                     Title = "Franks 3rd Card",
                     Description = "Franks Description of the 3nd card"
                 }

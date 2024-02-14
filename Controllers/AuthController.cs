@@ -1,14 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using test.Models;
-using Google.Apis.Auth;
-using System.Security.Claims;
-using System.Text;
-using test.database;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using Newtonsoft.Json.Bson;
 using FFrelloApi.Models;
+using Google.Apis.Auth;
+using FFrelloApi.database;
+using FFrelloApi.Models;
+using FFrelloApi.Services;
 
 namespace FFrelloApi.Controllers
 {
@@ -16,7 +12,12 @@ namespace FFrelloApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        public AuthController(IConfiguration configuration) { _configuration = configuration; }
+        private FFrelloAuthenticationService _authenticationService { get; set; }
+        public AuthController(IConfiguration configuration, FFrelloAuthenticationService authenticationService) 
+        { 
+            _configuration = configuration; 
+            _authenticationService = authenticationService; 
+        }
         public class GoogleSignInRequestDto
         {
             public string AccessToken { get; set; } = String.Empty;
@@ -48,15 +49,9 @@ namespace FFrelloApi.Controllers
                         // User exists, consider authorized
 
                         // Optionally, generate and return a JWT
-                        var jwt = GenerateJwt(existingUser);
+                        var jwt = _authenticationService.GenerateJwt(existingUser, _configuration["JWT-SECRET"]);
                         // generate a refresh token and save to the database
                         var refreshToken = await RotateRefreshToken(existingUser);
-
-                        ////set httponly cookie to use in subsequent api calls
-                        //Response.Cookies.Append("accessToken", jwt, new CookieOptions { HttpOnly = true, Secure=true, SameSite = SameSiteMode.None, });
-                        //Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions { HttpOnly = true, Secure = true, SameSite = SameSiteMode.None, });
-
-                        //Response.Headers.Append("Access-Control-Allow-Credentials", "true");
 
                         return Ok(new { Message = String.Format("Google authentication successful for user {0}", existingUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser});
                     }
@@ -72,13 +67,9 @@ namespace FFrelloApi.Controllers
                         }
 
                         // Optionally, generate and return a JWT
-                        var jwt = GenerateJwt(newUser);
+                        var jwt = _authenticationService.GenerateJwt(newUser, _configuration["JWT-SECRET"]);
                         // generate a refresh token and save to the database
                         var refreshToken = await RotateRefreshToken(newUser);
-
-                        ////set httponly cookie to use in subsequent api calls
-                        //Response.Cookies.Append("accessToken", jwt, new CookieOptions { HttpOnly = true,SameSite=SameSiteMode.None, });
-                        //Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions { HttpOnly = true,SameSite = SameSiteMode.None, });
 
                         return Ok(new { Message = String.Format("Google authentication successful. Created new FFrello user {0}", newUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser });
                     }
@@ -158,26 +149,6 @@ namespace FFrelloApi.Controllers
         //    return true; // Valid refresh token
         //}
 
-
-        private string GenerateJwt(User user)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Email.ToString()),
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT-SECRET"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var token = new JwtSecurityToken(
-                issuer: "your_issuer",
-                audience: "your_audience",
-                claims: claims,
-                expires: DateTime.Now.AddHours(4),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
 
         [HttpGet]
         private async Task<bool> ValidateGoogleAccessTokenAsync(string accessToken)

@@ -1,6 +1,6 @@
 ﻿using FFrelloApi.Models;
 
-namespace test.Models
+namespace FFrelloApi.Models
 {
     public class User
     {   

@@ -1,4 +1,4 @@
-﻿using test.Models;
+﻿using FFrelloApi.Models;
 
 namespace FFrelloApi.Models
 {
