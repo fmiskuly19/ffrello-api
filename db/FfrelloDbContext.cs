@@ -79,6 +79,8 @@ namespace FFrelloApi.database
                 {
                     Id = 1,
                     Email = "yluksim9@gmail.com",
+                    ProfilePhotoUrl = "https://lh3.googleusercontent.com/a/ACg8ocIJ36231TQrGFILAqYBP5CXuKJhnxqtHt4MJuT7GtUgOg=s96-c",
+                    Name = "Frank M"
                 }
             );
 

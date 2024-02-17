@@ -9,7 +9,7 @@
         public Card Card { get; set; }
         public int CardId { get; set; }
 
-        public string Value { get; set; }
+        public string Value { get; set; } = String.Empty;
 
         public DateTime DateTime { get; set; }
     }

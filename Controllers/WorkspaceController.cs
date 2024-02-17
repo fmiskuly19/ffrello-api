@@ -6,6 +6,7 @@ using FFrelloApi.Models.ApiArgs;
 using Microsoft.AspNetCore.Authorization;
 using FFrelloApi.Services;
 using AutoMapper;
+using FFrelloApi.Models.Dto;
 
 namespace FFrelloApi.Controllers
 {
@@ -261,8 +262,16 @@ namespace FFrelloApi.Controllers
                 {
                     //check if user owns board List
                     //ensure user owns boardlist with boardListId
-                    var card = await dbContext.Cards.Include(x => x.Members).Include(x => x.Comments).FirstOrDefaultAsync(x => x.Id == cardid);
+                    var card = await dbContext.Cards.Include(x => x.Members).Include(x => x.Comments).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == cardid);
                     var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == userEmail);
+
+                    if (card == null || user == null)
+                    {
+                        return BadRequest("ERROR GETTING CARD OR USER");
+                    }
+                    //reorder card comments so that the most recent shows up on top
+                    //there is definitely a better way to do this, maybe through AutoMapper?????
+                    card.Comments = card.Comments.OrderByDescending(x => x.DateTime).ToList();
 
                     var watcher = await dbContext.CardWatchers.FirstOrDefaultAsync(x => x.CardId == card.Id && x.UserId == user.Id);
                     var response = _mapper.Map<CardDto>(card);
@@ -447,9 +456,119 @@ namespace FFrelloApi.Controllers
                     dbContext.CardComments.Add(newComment);
                     await dbContext.SaveChangesAsync();
 
-                    var comments = dbContext.CardComments.Where(x => x.CardId == data.CardId).ToList();
+                    var comments = dbContext.CardComments.Where(x => x.CardId == data.CardId).Include(x => x.User).ToList().OrderByDescending(x => x.DateTime);
+                    var commentDtos = _mapper.Map<List<CardCommentDto>>(comments);
+                    
+                    //this is probably bad for performance
                     //return comments
-                    return new JsonResult(comments);
+                    return new JsonResult(commentDtos);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        public class RemoveCommentArgs
+        {
+            public int CommentId { get; set; }
+        }
+
+        [HttpDelete("card/comment/remove")]
+        public async Task<IActionResult> RemoveComment([FromBody] RemoveCommentArgs data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var comment = await dbContext.CardComments.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == data.CommentId);
+
+                    if(comment == null)
+                        return BadRequest("Could not find comment");
+                    else if (comment.User.Email != userEmail)
+                        return BadRequest("Cannot delete a comment not owned by the user");
+
+                    dbContext.CardComments.Remove(comment);
+                    await dbContext.SaveChangesAsync();
+                    
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        public class EditCommentArgs
+        {
+            public int CommentId { get; set; }
+            public string Value { get; set; }
+        }
+
+        [HttpPut("card/comment/edit")]
+        public async Task<IActionResult> EditComment([FromBody] EditCommentArgs data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var comment = await dbContext.CardComments.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == data.CommentId);
+
+                    if (comment == null)
+                        return BadRequest("Could not find comment");
+                    else if (comment.User.Email != userEmail)
+                        return BadRequest("Cannot edit a comment not owned by the user");
+
+                    comment.Value = data.Value;
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        public class EditDescriptionArgs
+        {
+            public int CardId { get; set; }
+            public string Value { get; set; }
+        }
+
+        [HttpPut("card/description/edit")]
+        public async Task<IActionResult> EditDescription([FromBody] EditDescriptionArgs data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var card = await dbContext.Cards.FirstOrDefaultAsync(x => x.Id == data.CardId);
+
+                    if (card == null)
+                        return BadRequest("Could not find card");
+                    else if (String.IsNullOrEmpty(data.Value))
+                        return BadRequest("Description must have a value");
+
+                    card.Description = data.Value;
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
                 }
             }
             catch (Exception e)

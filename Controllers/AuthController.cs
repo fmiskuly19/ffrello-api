@@ -59,7 +59,7 @@ namespace FFrelloApi.Controllers
                     //if user didnt exist, create new user, generate jwt and refresh token, return both of those
                     else
                     {
-                        var newUser = new User { Email = googleUser.Email }; // Customize based on your User model
+                        var newUser = new User { Email = googleUser.Email, Name = googleUser.Name, ProfilePhotoUrl = googleUser.PictureUrl }; // Customize based on your User model
                         using (FfrelloDbContext dbContext = new FfrelloDbContext())
                         {
                             dbContext.Users.Add(newUser);
