@@ -261,7 +261,7 @@ namespace FFrelloApi.Controllers
                 {
                     //check if user owns board List
                     //ensure user owns boardlist with boardListId
-                    var card = await dbContext.Cards.Include(x => x.Members).FirstOrDefaultAsync(x => x.Id == cardid);
+                    var card = await dbContext.Cards.Include(x => x.Members).Include(x => x.Comments).FirstOrDefaultAsync(x => x.Id == cardid);
                     var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == userEmail);
 
                     var watcher = await dbContext.CardWatchers.FirstOrDefaultAsync(x => x.CardId == card.Id && x.UserId == user.Id);
@@ -414,6 +414,49 @@ namespace FFrelloApi.Controllers
             }
         }
 
+
+        #endregion
+
+        #region comments
+
+        public class AddCommentArgs
+        {
+            public int UserId { get; set; }
+            public int CardId { get; set; }
+            public string Comment { get; set; } = String.Empty;
+        }
+
+        [HttpPost("card/comment/new")]
+        public async Task<IActionResult> AddComment([FromBody] AddCommentArgs data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var newComment = new CardComment()
+                    {
+                        UserId = data.UserId,
+                        CardId = data.CardId,
+                        Value = data.Comment,
+                        DateTime = DateTime.UtcNow
+                    };
+                    dbContext.CardComments.Add(newComment);
+                    await dbContext.SaveChangesAsync();
+
+                    var comments = dbContext.CardComments.Where(x => x.CardId == data.CardId).ToList();
+                    //return comments
+                    return new JsonResult(comments);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
 
         #endregion
 

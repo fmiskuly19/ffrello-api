@@ -3,6 +3,7 @@ using System;
 using FFrelloApi.database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FFrelloApi.Migrations
 {
     [DbContext(typeof(FfrelloDbContext))]
-    partial class FfrelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240217050928_AddCardComments")]
+    partial class AddCardComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.11");
@@ -363,7 +366,7 @@ namespace FFrelloApi.Migrations
             modelBuilder.Entity("FFrelloApi.Models.CardComment", b =>
                 {
                     b.HasOne("FFrelloApi.Models.Card", "Card")
-                        .WithMany("Comments")
+                        .WithMany()
                         .HasForeignKey("CardId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -440,8 +443,6 @@ namespace FFrelloApi.Migrations
             modelBuilder.Entity("FFrelloApi.Models.Card", b =>
                 {
                     b.Navigation("CardWatchers");
-
-                    b.Navigation("Comments");
 
                     b.Navigation("Members");
                 });

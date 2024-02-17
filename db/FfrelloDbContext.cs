@@ -55,6 +55,11 @@ namespace FFrelloApi.database
                 .WithOne(c => c.BoardList)
                 .HasForeignKey(c => c.BoardListId);
 
+            modelBuilder.Entity<Card>()
+               .HasMany(l => l.Comments)
+               .WithOne(c => c.Card)
+               .HasForeignKey(c => c.CardId);
+
             //create composite key to ensure uniqueness
             modelBuilder.Entity<CardWatcher>()
                 .HasKey(cw => new { cw.UserId, cw.CardId });
@@ -202,5 +207,6 @@ namespace FFrelloApi.database
         public DbSet<User> Users => Set<User>();
         public DbSet<CardWatcher> CardWatchers => Set<CardWatcher>();
         public DbSet<FFrelloRefreshToken> RefreshTokens => Set<FFrelloRefreshToken>();
+        public DbSet<CardComment> CardComments => Set<CardComment>();
     }
 }
