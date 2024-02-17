@@ -53,7 +53,7 @@ namespace FFrelloApi.Controllers
                         // generate a refresh token and save to the database
                         var refreshToken = await RotateRefreshToken(existingUser);
 
-                        return Ok(new { Message = String.Format("Google authentication successful for user {0}", existingUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser});
+                        return Ok(new { Message = String.Format("Google authentication successful for user {0}", existingUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser, UserId = existingUser.Id });
                     }
 
                     //if user didnt exist, create new user, generate jwt and refresh token, return both of those
@@ -71,7 +71,7 @@ namespace FFrelloApi.Controllers
                         // generate a refresh token and save to the database
                         var refreshToken = await RotateRefreshToken(newUser);
 
-                        return Ok(new { Message = String.Format("Google authentication successful. Created new FFrello user {0}", newUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser });
+                        return Ok(new { Message = String.Format("Google authentication successful. Created new FFrello user {0}", newUser.Email), AccessToken = jwt, RefreshToken = refreshToken, GoogleUser = googleUser, UserId = newUser.Id });
                     }
                 }
                 else

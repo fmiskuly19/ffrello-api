@@ -13,7 +13,7 @@ namespace FFrelloApi.database
         public FfrelloDbContext(DbContextOptions<FfrelloDbContext> options)
             : base(options)
         {
-            Database.EnsureCreated(); //this is to get rid of table does not exist error
+            //Database.EnsureCreated(); //this is to get rid of table does not exist error
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -54,6 +54,20 @@ namespace FFrelloApi.database
                 .HasMany(l => l.Cards)
                 .WithOne(c => c.BoardList)
                 .HasForeignKey(c => c.BoardListId);
+
+            //create composite key to ensure uniqueness
+            modelBuilder.Entity<CardWatcher>()
+                .HasKey(cw => new { cw.UserId, cw.CardId });
+
+            modelBuilder.Entity<CardWatcher>()
+                .HasOne(cw => cw.User)
+                .WithMany() // No navigation property
+                .HasForeignKey(cw => cw.UserId);
+
+            modelBuilder.Entity<CardWatcher>()
+                .HasOne(cw => cw.Card)
+                .WithMany(c => c.CardWatchers)
+                .HasForeignKey(cw => cw.CardId);
 
             modelBuilder.Entity<User>().HasData(
                 new User()
@@ -186,6 +200,7 @@ namespace FFrelloApi.database
         public DbSet<BoardList> BoardLists => Set<BoardList>();
         public DbSet<Card> Cards => Set<Card>();
         public DbSet<User> Users => Set<User>();
+        public DbSet<CardWatcher> CardWatchers => Set<CardWatcher>();
         public DbSet<FFrelloRefreshToken> RefreshTokens => Set<FFrelloRefreshToken>();
     }
 }

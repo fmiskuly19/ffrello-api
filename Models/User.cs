@@ -11,6 +11,6 @@ namespace FFrelloApi.Models
         // navigation properties
         public int RefreshTokenId { get; set; }
         public FFrelloRefreshToken RefreshToken { get; set; }  
-        
+
     }
 }

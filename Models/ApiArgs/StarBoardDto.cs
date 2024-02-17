@@ -1,6 +1,6 @@
 ﻿using FFrelloApi.Models;
 
-namespace FFrelloApi.Models.Dto
+namespace FFrelloApi.Models.ApiArgs
 {
     public class StarBoardDto
     {

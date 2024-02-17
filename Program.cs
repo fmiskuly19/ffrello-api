@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using FFrelloApi.database;
 using FFrelloApi.Services;
 using Azure.Identity;
+using Microsoft.AspNetCore.Hosting;
 
 namespace FFrelloApi
 {
@@ -59,6 +60,11 @@ namespace FFrelloApi
                     ValidAudience = "your_audience",
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT-SECRET"]))
                 };
+            });
+
+            builder.Services.AddAutoMapper(config =>
+            {
+                config.AddProfile<MappingProfile>();
             });
 
             var app = builder.Build();

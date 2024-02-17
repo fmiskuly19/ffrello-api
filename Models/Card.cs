@@ -13,5 +13,6 @@
         public string BoardListName { get; set; }
 
         public List<User> Members { get; set; }
+        public List<CardWatcher> CardWatchers { get; set; }
     }
 }

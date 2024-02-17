@@ -2,9 +2,10 @@
 using FFrelloApi.database;
 using Microsoft.EntityFrameworkCore;
 using FFrelloApi.Models;
-using FFrelloApi.Models.Dto;
+using FFrelloApi.Models.ApiArgs;
 using Microsoft.AspNetCore.Authorization;
 using FFrelloApi.Services;
+using AutoMapper;
 
 namespace FFrelloApi.Controllers
 {
@@ -14,16 +15,18 @@ namespace FFrelloApi.Controllers
     public class WorkspaceController : ControllerBase
     {
         private FFrelloAuthenticationService _authenticationService { get; set; }
-        public WorkspaceController(FFrelloAuthenticationService authenticationService)
+        private IMapper _mapper { get; set; }
+        public WorkspaceController(FFrelloAuthenticationService authenticationService, IMapper mapper)
         {
             _authenticationService = authenticationService;
+            _mapper = mapper;
         }
 
         #region boards
 
         //this is setup for auth
-        [HttpPost("{userid}/board/new")]
-        public async Task<IActionResult> NewBoard(string userid, [FromBody] NewBoardDto data)
+        [HttpPost("board/new")]
+        public async Task<IActionResult> NewBoard([FromBody] NewBoardDto data)
         {
             try
             {
@@ -56,8 +59,8 @@ namespace FFrelloApi.Controllers
         }
 
         //this is setup for auth
-        [HttpGet("{userid}/getBoard/{boardid}")]
-        public async Task<IActionResult> GetBoardWithIncludes(string userid, int boardid)
+        [HttpGet("getBoard/{boardid}")]
+        public async Task<IActionResult> GetBoardWithIncludes(int boardid)
         {
             try
             {
@@ -93,8 +96,8 @@ namespace FFrelloApi.Controllers
             }
         }
 
-        [HttpPut("{userid}/board/star/{boardid}")]
-        public async Task<IActionResult> StarBoard(string userid, [FromBody] StarBoardDto data)
+        [HttpPut("board/star/{boardid}")]
+        public async Task<IActionResult> StarBoard([FromBody] StarBoardDto data)
         {
             try
             {
@@ -120,8 +123,8 @@ namespace FFrelloApi.Controllers
         #region workspaces
         
         //this is setup for auth
-        [HttpGet("{userid}/workspaces")]
-        public IActionResult GetWorkspaces(string userid)
+        [HttpGet("workspaces")]
+        public IActionResult GetWorkspaces()
         {
             try
             {
@@ -144,8 +147,8 @@ namespace FFrelloApi.Controllers
         }
 
         //this is setup for auth
-        [HttpPost("{userid}/workspace/new")]
-        public async Task<IActionResult> NewWorkspace(string userid, [FromBody] NewWorkspaceDto data)
+        [HttpPost("workspace/new")]
+        public async Task<IActionResult> NewWorkspace([FromBody] NewWorkspaceDto data)
         {
             try
             {
@@ -173,8 +176,8 @@ namespace FFrelloApi.Controllers
         }
 
         //this is setup for auth
-        [HttpDelete("{userid}/workspace/remove/{workspaceid}")]
-        public async Task<IActionResult> DeleteWorkspace(string userid, int workspaceid)
+        [HttpDelete("workspace/remove/{workspaceid}")]
+        public async Task<IActionResult> DeleteWorkspace(int workspaceid)
         {
             try
             {
@@ -208,8 +211,8 @@ namespace FFrelloApi.Controllers
 
         #region cards
 
-        [HttpPost("{userid}/card/new")]
-        public async Task<IActionResult> NewCard(string userid, [FromBody] NewCardDto data)
+        [HttpPost("card/new")]
+        public async Task<IActionResult> NewCard([FromBody] NewCardDto data)
         {
             try
             {
@@ -245,8 +248,8 @@ namespace FFrelloApi.Controllers
             }
         }
 
-        [HttpGet("{userid}/card/{cardid}")]
-        public async Task<IActionResult> GetCard(string userid, int cardid)
+        [HttpGet("card/{cardid}")]
+        public async Task<IActionResult> GetCard(int cardid)
         {
             try
             {
@@ -258,12 +261,78 @@ namespace FFrelloApi.Controllers
                 {
                     //check if user owns board List
                     //ensure user owns boardlist with boardListId
-                    var card = await dbContext.Cards.FirstOrDefaultAsync(x => x.Id == cardid);
+                    var card = await dbContext.Cards.Include(x => x.Members).FirstOrDefaultAsync(x => x.Id == cardid);
+                    var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == userEmail);
 
-                    if (card != null)
-                        return new JsonResult(card);
+                    var watcher = await dbContext.CardWatchers.FirstOrDefaultAsync(x => x.CardId == card.Id && x.UserId == user.Id);
+                    var response = _mapper.Map<CardDto>(card);
+                    response.isUserWatching = watcher == null ? false : true;
+
+                    return new JsonResult(response);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        public class WatchDto
+        {
+            public bool Watch { get; set; }
+            public int UserId { get; set; }
+            public int CardId { get; set; }
+        }
+
+        [HttpPut("card/{cardid}/watch")]
+        public async Task<IActionResult> WatchCard(int cardid, [FromBody] WatchDto data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var card = await dbContext.Cards.Include(x => x.Members).FirstOrDefaultAsync(x => x.Id == data.CardId);
+                    var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == userEmail);
+
+                    if(card == null || user == null)
+                    {
+                        return BadRequest(String.Format("ERROR {0}", data.CardId));
+                    }
+
+                    var response = _mapper.Map<CardDto>(card);
+
+                    //add new card watcher
+                    if (data.Watch)
+                    {
+                        //check if exists before adding
+                        var watcher = await dbContext.CardWatchers.FirstOrDefaultAsync(x => x.UserId == user.Id && x.CardId == card.Id);
+                        if (watcher == null)
+                        {
+                            dbContext.CardWatchers.Add(new CardWatcher() { UserId = user.Id, CardId = card.Id });
+                            await dbContext.SaveChangesAsync();
+                        }
+                        response.isUserWatching = true;
+                        return new JsonResult(response);
+                    }
+                    //delete existing card watcher if it exists
                     else
-                        return BadRequest(String.Format("Could not find card with Id {0}", cardid));
+                    {
+                        var watcher = await dbContext.CardWatchers.FirstOrDefaultAsync(x => x.UserId == user.Id && x.CardId == card.Id);
+                        if (watcher != null)
+                        {
+                            dbContext.CardWatchers.Remove(watcher);
+                            await dbContext.SaveChangesAsync();
+
+                            response.isUserWatching = false;
+                            return new JsonResult(response);
+                        }
+
+                        return BadRequest(String.Format("Could not find watcher for user {0} and card {1}",user.Id, card.Id));
+                    }
                 }
             }
             catch (Exception e)
@@ -277,8 +346,8 @@ namespace FFrelloApi.Controllers
         #region board lists
 
         //this is setup for auth
-        [HttpPut("{userid}/newBoardList")]
-        public async Task<IActionResult> NewBoardList(string userid, [FromBody] NewBoardListDto data)
+        [HttpPut("newBoardList")]
+        public async Task<IActionResult> NewBoardList([FromBody] NewBoardListDto data)
         {
             try
             {
@@ -311,8 +380,8 @@ namespace FFrelloApi.Controllers
         }
 
         //this is setup for auth
-        [HttpDelete("{userid}/boardList/remove/{boardListId}")]
-        public async Task<IActionResult> RemoveBoardList(string userid, int boardListId)
+        [HttpDelete("boardList/remove/{boardListId}")]
+        public async Task<IActionResult> RemoveBoardList(int boardListId)
         {
             try
             {
