@@ -15,5 +15,6 @@
         public List<User> Members { get; set; }
         public List<CardWatcher> CardWatchers { get; set; }
         public List<CardComment> Comments { get; set; }
+        public List<CardChecklist> Checklists { get; set; }
     }
 }

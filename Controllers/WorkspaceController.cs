@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using FFrelloApi.Services;
 using AutoMapper;
 using FFrelloApi.Models.Dto;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FFrelloApi.Controllers
 {
@@ -210,6 +211,79 @@ namespace FFrelloApi.Controllers
 
         #endregion
 
+        #region board lists
+
+        //this is setup for auth
+        [HttpPut("newBoardList")]
+        public async Task<IActionResult> NewBoardList([FromBody] NewBoardListDto data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    //ensure user owns board with boardid
+                    var board = await dbContext.Boards.Include(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == data.BoardId);
+
+                    //check if board exists
+                    if (board == null)
+                        return BadRequest(String.Format("Could not find board with id {0}", data.BoardId));
+                    //check if board list belongs to user
+                    if (board.Workspace.User.Email != userEmail)
+                        return Unauthorized();
+
+                    var bl = new BoardList() { Name = data.Name, BoardId = data.BoardId };
+                    await dbContext.BoardLists.AddAsync(bl);
+                    await dbContext.SaveChangesAsync();
+                    return new JsonResult(bl);
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        //this is setup for auth
+        [HttpDelete("boardList/remove/{boardListId}")]
+        public async Task<IActionResult> RemoveBoardList(int boardListId)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    //check if user owns board List
+                    //ensure user owns boardlist with boardListId
+                    var boardList = await dbContext.BoardLists.Include(x => x.Board).ThenInclude(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == boardListId);
+
+                    //check if board list exists
+                    if (boardList == null)
+                        return BadRequest(String.Format("Could not find board list with id {0}", boardListId));
+                    //check if board belongs to user
+                    if (boardList.Board.Workspace.User.Email != userEmail)
+                        return Unauthorized();
+
+                    dbContext.BoardLists.Remove(boardList);
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        #endregion
+
         #region cards
 
         [HttpPost("card/new")]
@@ -260,9 +334,12 @@ namespace FFrelloApi.Controllers
 
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    //check if user owns board List
-                    //ensure user owns boardlist with boardListId
-                    var card = await dbContext.Cards.Include(x => x.Members).Include(x => x.Comments).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == cardid);
+                    var card = await dbContext.Cards
+                        .Include(x => x.Members)
+                        .Include(x => x.Comments).ThenInclude(x => x.User)
+                        .Include(x => x.Checklists).ThenInclude(x => x.Items)
+                        .FirstOrDefaultAsync(x => x.Id == cardid);
+
                     var user = await dbContext.Users.FirstOrDefaultAsync(x => x.Email == userEmail);
 
                     if (card == null || user == null)
@@ -352,11 +429,18 @@ namespace FFrelloApi.Controllers
 
         #endregion
 
-        #region board lists
+        #region card extras
 
-        //this is setup for auth
-        [HttpPut("newBoardList")]
-        public async Task<IActionResult> NewBoardList([FromBody] NewBoardListDto data)
+        public class NewChecklistArgs
+        {
+            public int CardId { get; set; }
+            //must have a name
+            public string Name { get; set; }
+        }
+
+        //create new checklist
+        [HttpPost("card/checklist/new")]
+        public async Task<IActionResult> NewChecklist([FromBody] NewChecklistArgs data)
         {
             try
             {
@@ -364,22 +448,24 @@ namespace FFrelloApi.Controllers
                 if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
                     return Unauthorized(error);
 
+                if (String.IsNullOrEmpty(data.Name))
+                {
+                    return BadRequest("Checklits must have a name");
+                }
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    //ensure user owns board with boardid
-                    var board = await dbContext.Boards.Include(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == data.BoardId);
+                    var newChecklist = new CardChecklist
+                    {
+                        Name = data.Name,
+                        CardId = data.CardId
+                    };
 
-                    //check if board exists
-                    if (board == null)
-                        return BadRequest(String.Format("Could not find board with id {0}", data.BoardId));
-                    //check if board list belongs to user
-                    if (board.Workspace.User.Email != userEmail)
-                        return Unauthorized();
-
-                    var bl = new BoardList() { Name = data.Name, BoardId = data.BoardId };
-                    await dbContext.BoardLists.AddAsync(bl);
+                    dbContext.CardChecklists.Add(newChecklist);
                     await dbContext.SaveChangesAsync();
-                    return new JsonResult(bl);
+
+                    //return the new card with newly created id
+                    return Ok();
                 }
             }
             catch (Exception e)
@@ -388,9 +474,18 @@ namespace FFrelloApi.Controllers
             }
         }
 
-        //this is setup for auth
-        [HttpDelete("boardList/remove/{boardListId}")]
-        public async Task<IActionResult> RemoveBoardList(int boardListId)
+        public class NewChecklistItemArgs
+        {
+            public int ChecklistId { get; set; }
+            public string Name { get; set; } = String.Empty;
+            public bool IsChecked { get; set; } = false;
+            public int? UserId { get; set; }
+            public DateTime? DueDate { get; set; }
+        }
+
+        //create new checklist item
+        [HttpPost("card/checklist/item/add")]
+        public async Task<IActionResult> NewChecklistItem([FromBody] NewChecklistItemArgs data)
         {
             try
             {
@@ -398,20 +493,20 @@ namespace FFrelloApi.Controllers
                 if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
                     return Unauthorized(error);
 
+                if (String.IsNullOrEmpty(data.Name))
+                {
+                    return BadRequest("Checklist item must have a value");
+                }
+
                 using (FfrelloDbContext dbContext = new FfrelloDbContext())
                 {
-                    //check if user owns board List
-                    //ensure user owns boardlist with boardListId
-                    var boardList = await dbContext.BoardLists.Include(x => x.Board).ThenInclude(x => x.Workspace).ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == boardListId);
+                    var checklist = await dbContext.CardChecklists.FirstOrDefaultAsync(x => x.Id == data.ChecklistId);
 
-                    //check if board list exists
-                    if (boardList == null)
-                        return BadRequest(String.Format("Could not find board list with id {0}", boardListId));
-                    //check if board belongs to user
-                    if (boardList.Board.Workspace.User.Email != userEmail)
-                        return Unauthorized();
+                    if (checklist == null)
+                        return BadRequest("Could not find checklist");
 
-                    dbContext.BoardLists.Remove(boardList);
+                    checklist.Items.Add(new CardChecklistItem() { Name = data.Name, DueDate = data.DueDate, UserId = data.UserId, CardChecklistId = data.ChecklistId });
+                    dbContext.Attach(checklist);
                     await dbContext.SaveChangesAsync();
 
                     return Ok();
@@ -423,6 +518,77 @@ namespace FFrelloApi.Controllers
             }
         }
 
+        public class SetChecklistItemValueArgs
+        {
+            public int ChecklistItemId { get; set; }
+            public bool Value { get; set; }
+
+        }
+
+        [HttpPost("card/checklist/item/edit")]
+        public async Task<IActionResult> SetChecklistItemValue([FromBody] SetChecklistItemValueArgs data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var checklistItem = await dbContext.CardChecklistItems.FirstOrDefaultAsync(x => x.Id == data.ChecklistItemId);
+
+                    if (checklistItem == null)
+                        return BadRequest("Could not find checklist item");
+
+                    checklistItem.IsChecked = data.Value;
+                    dbContext.Attach(checklistItem);
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        //edit checklist
+
+        //delete checklist
+        public class RemoveChecklistArgs
+        {
+            public int ChecklistId { get; set; }
+        }
+
+        [HttpDelete("card/checklist/remove")]
+        public async Task<IActionResult> DeleteChecklist([FromBody] RemoveChecklistArgs data)
+        {
+            try
+            {
+                var jwtToken = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                if (!_authenticationService.IsJwtValid(jwtToken, out string error, out string userEmail))
+                    return Unauthorized(error);
+
+                using (FfrelloDbContext dbContext = new FfrelloDbContext())
+                {
+                    var checklist = await dbContext.CardChecklists.FirstOrDefaultAsync(x => x.Id == data.ChecklistId);
+
+                    if (checklist == null)
+                        return BadRequest("Could not find checklist");
+
+                    dbContext.CardChecklists.Remove(checklist);
+                    await dbContext.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
 
         #endregion
 

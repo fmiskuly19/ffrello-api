@@ -74,15 +74,30 @@ namespace FFrelloApi.database
                 .WithMany(c => c.CardWatchers)
                 .HasForeignKey(cw => cw.CardId);
 
+            modelBuilder.Entity<Card>()
+               .HasMany(l => l.Checklists)
+               .WithOne(c => c.Card)
+               .HasForeignKey(c => c.CardId);
+
+            modelBuilder.Entity<CardChecklistItem>()
+                .HasOne(cc => cc.CardChecklist)
+                .WithMany(c => c.Items);
+
+            modelBuilder.Entity<CardChecklistItem>()
+                .HasOne(cc => cc.User)
+                .WithMany(); // No navigation property
+
+            #region seed data
+
             modelBuilder.Entity<User>().HasData(
-                new User()
-                {
-                    Id = 1,
-                    Email = "yluksim9@gmail.com",
-                    ProfilePhotoUrl = "https://lh3.googleusercontent.com/a/ACg8ocIJ36231TQrGFILAqYBP5CXuKJhnxqtHt4MJuT7GtUgOg=s96-c",
-                    Name = "Frank M"
-                }
-            );
+               new User()
+               {
+                   Id = 1,
+                   Email = "yluksim9@gmail.com",
+                   ProfilePhotoUrl = "https://lh3.googleusercontent.com/a/ACg8ocIJ36231TQrGFILAqYBP5CXuKJhnxqtHt4MJuT7GtUgOg=s96-c",
+                   Name = "Frank M"
+               }
+           );
 
             modelBuilder.Entity<Card>().HasData(
                 new Card()
@@ -196,6 +211,7 @@ namespace FFrelloApi.database
             );
         }
 
+        #endregion
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -210,5 +226,7 @@ namespace FFrelloApi.database
         public DbSet<CardWatcher> CardWatchers => Set<CardWatcher>();
         public DbSet<FFrelloRefreshToken> RefreshTokens => Set<FFrelloRefreshToken>();
         public DbSet<CardComment> CardComments => Set<CardComment>();
+        public DbSet<CardChecklist> CardChecklists => Set<CardChecklist>();
+        public DbSet<CardChecklistItem> CardChecklistItems => Set<CardChecklistItem>();
     }
 }

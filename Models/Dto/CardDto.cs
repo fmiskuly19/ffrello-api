@@ -9,6 +9,7 @@
         public int BoardListId { get; set; }
         public string BoardListName { get; set; }
         public List<CardCommentDto> Comments { get; set; }
+        public List<CardChecklist> Checklists { get; set; }
         public bool isUserWatching { get; set; }
     }
 }

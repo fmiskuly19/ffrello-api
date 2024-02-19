@@ -3,6 +3,7 @@ using System;
 using FFrelloApi.database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FFrelloApi.Migrations
 {
     [DbContext(typeof(FfrelloDbContext))]
-    partial class FfrelloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240218220652_AddCardChecklsits")]
+    partial class AddCardChecklsits
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.11");
@@ -183,16 +186,11 @@ namespace FFrelloApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("CardId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CardId");
 
                     b.ToTable("CardChecklists");
                 });
@@ -216,7 +214,7 @@ namespace FFrelloApi.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -225,7 +223,7 @@ namespace FFrelloApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CardChecklistItems");
+                    b.ToTable("CardChecklistItem");
                 });
 
             modelBuilder.Entity("FFrelloApi.Models.CardComment", b =>
@@ -421,17 +419,6 @@ namespace FFrelloApi.Migrations
                     b.Navigation("BoardList");
                 });
 
-            modelBuilder.Entity("FFrelloApi.Models.CardChecklist", b =>
-                {
-                    b.HasOne("FFrelloApi.Models.Card", "Card")
-                        .WithMany("Checklists")
-                        .HasForeignKey("CardId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Card");
-                });
-
             modelBuilder.Entity("FFrelloApi.Models.CardChecklistItem", b =>
                 {
                     b.HasOne("FFrelloApi.Models.CardChecklist", "CardChecklist")
@@ -442,7 +429,9 @@ namespace FFrelloApi.Migrations
 
                     b.HasOne("FFrelloApi.Models.User", "User")
                         .WithMany()
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("CardChecklist");
 
@@ -529,8 +518,6 @@ namespace FFrelloApi.Migrations
             modelBuilder.Entity("FFrelloApi.Models.Card", b =>
                 {
                     b.Navigation("CardWatchers");
-
-                    b.Navigation("Checklists");
 
                     b.Navigation("Comments");
 
